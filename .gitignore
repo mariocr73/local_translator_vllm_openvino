@@ -1,0 +1,53 @@
+# Environment variables with potential secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Podman/Docker volumes (models are large!)
+# Note: Models are downloaded to podman volumes, not local filesystem
+# If you have local model cache, add it here
+
+# Logs
+*.log
+logs/
+
+# Claude Code (optional - keep if you want to share your Claude Code config)
+# .claude/
+
+# OS
+Thumbs.db

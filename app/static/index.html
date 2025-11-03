@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traductor EN→ES</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .translator-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .text-area-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 250px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .refine-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .refine-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .refine-section.visible {
+            display: block;
+        }
+
+        .refine-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .refine-controls label {
+            margin-bottom: 0;
+        }
+
+        .refine-controls select {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            background: white;
+        }
+
+        .refine-controls select:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .translator-box {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Traductor Bidireccional</h1>
+        <p class="subtitle">Traductor técnico ES↔EN con LLM local (detección automática)</p>
+
+        <form id="translatorForm">
+            <div class="translator-box">
+                <div class="text-area-wrapper">
+                    <label for="inputText">Texto original (ES o EN)</label>
+                    <textarea
+                        id="inputText"
+                        name="text"
+                        placeholder="Escribe o pega aquí el texto que quieres traducir..."
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="text-area-wrapper">
+                    <label for="outputText">Traducción <span id="directionLabel"></span></label>
+                    <textarea
+                        id="outputText"
+                        placeholder="La traducción aparecerá aquí..."
+                        disabled
+                    ></textarea>
+                </div>
+            </div>
+
+            <div class="button-container">
+                <button type="submit" id="translateBtn">Traducir</button>
+                <button type="button" class="clear-btn" id="clearBtn">Limpiar</button>
+            </div>
+        </form>
+
+        <div class="refine-section" id="refineSection">
+            <h3 style="color: #4facfe; margin-bottom: 15px;">Traducción con Estilo Mejorado</h3>
+            <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">
+                Traduce nuevamente desde el texto original aplicando un estilo específico
+            </p>
+            <div class="refine-controls">
+                <label for="refineStyle">Estilo de traducción:</label>
+                <select id="refineStyle">
+                    <option value="clear">Más claro</option>
+                    <option value="formal">Más formal</option>
+                    <option value="concise">Más conciso</option>
+                    <option value="technical">Más técnico</option>
+                </select>
+                <button type="button" class="refine-btn" id="refineBtn">Traducir con Estilo</button>
+            </div>
+            <div>
+                <label for="refinedText">Traducción estilizada:</label>
+                <textarea
+                    id="refinedText"
+                    placeholder="La traducción con estilo aplicado aparecerá aquí..."
+                    disabled
+                ></textarea>
+            </div>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+
+        <div class="footer">
+            Modelo: Qwen2.5-3B-Instruct con OpenVINO + FP8 KV Cache
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('translatorForm');
+        const inputText = document.getElementById('inputText');
+        const outputText = document.getElementById('outputText');
+        const translateBtn = document.getElementById('translateBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const status = document.getElementById('status');
+        const refineSection = document.getElementById('refineSection');
+        const refineBtn = document.getElementById('refineBtn');
+        const refineStyle = document.getElementById('refineStyle');
+        const refinedText = document.getElementById('refinedText');
+
+        // Variable para guardar la dirección de traducción
+        let currentDirection = '';
+
+        function showStatus(message, type = 'info') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+
+        function hideStatus() {
+            status.style.display = 'none';
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const text = inputText.value.trim();
+            if (!text) {
+                showStatus('Por favor ingresa algún texto para traducir', 'error');
+                return;
+            }
+
+            translateBtn.disabled = true;
+            translateBtn.innerHTML = 'Traduciendo<span class="loading"></span>';
+            outputText.value = '';
+            refineSection.classList.remove('visible');
+            refinedText.value = '';
+            showStatus('Enviando al modelo...', 'info');
+
+            try {
+                const formData = new FormData();
+                formData.append('text', text);
+
+                const response = await fetch('/translate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    outputText.value = data.translated;
+                    const dirLabel = document.getElementById('directionLabel');
+                    dirLabel.textContent = `(${data.direction})`;
+                    const tokens = data.usage?.total_tokens || 0;
+                    showStatus(`✓ Traducción completada (${data.direction}, ${tokens} tokens)`, 'success');
+
+                    // Guardar dirección para usar en refinamiento
+                    currentDirection = data.direction;
+
+                    // Mostrar sección de refinamiento
+                    refineSection.classList.add('visible');
+                } else {
+                    showStatus(`Error: ${data.error}`, 'error');
+                    outputText.value = '';
+                }
+            } catch (error) {
+                showStatus(`Error de conexión: ${error.message}`, 'error');
+                outputText.value = '';
+            } finally {
+                translateBtn.disabled = false;
+                translateBtn.textContent = 'Traducir';
+            }
+        });
+
+        refineBtn.addEventListener('click', async () => {
+            const originalText = inputText.value.trim();
+            if (!originalText) {
+                showStatus('Primero necesitas traducir un texto', 'error');
+                return;
+            }
+
+            if (!currentDirection) {
+                showStatus('Error: dirección de traducción no detectada', 'error');
+                return;
+            }
+
+            const style = refineStyle.value;
+            refineBtn.disabled = true;
+            refineBtn.innerHTML = 'Mejorando<span class="loading"></span>';
+            refinedText.value = '';
+
+            const styleNames = {
+                'clear': 'más claro',
+                'formal': 'más formal',
+                'concise': 'más conciso',
+                'technical': 'más técnico'
+            };
+            showStatus(`Traduciendo con estilo ${styleNames[style]} desde el texto original...`, 'info');
+
+            try {
+                const formData = new FormData();
+                formData.append('text', originalText);  // Enviar texto original
+                formData.append('style', style);
+                formData.append('direction', currentDirection);  // Enviar dirección
+
+                const response = await fetch('/refine', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    refinedText.value = data.refined;
+                    const tokens = data.usage?.total_tokens || 0;
+                    showStatus(`✓ Traducción mejorada (${styleNames[style]}, ${tokens} tokens)`, 'success');
+                } else {
+                    showStatus(`Error: ${data.error}`, 'error');
+                    refinedText.value = '';
+                }
+            } catch (error) {
+                showStatus(`Error de conexión: ${error.message}`, 'error');
+                refinedText.value = '';
+            } finally {
+                refineBtn.disabled = false;
+                refineBtn.textContent = 'Mejorar con IA';
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            inputText.value = '';
+            outputText.value = '';
+            refinedText.value = '';
+            refineSection.classList.remove('visible');
+            hideStatus();
+            inputText.focus();
+        });
+
+        // Focus automático en el campo de entrada
+        inputText.focus();
+    </script>
+</body>
+</html>

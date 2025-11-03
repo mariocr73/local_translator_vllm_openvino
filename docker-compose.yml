@@ -1,0 +1,87 @@
+version: "3.9"
+
+services:
+  downloader:
+    build:
+      context: .
+      dockerfile: Dockerfile.downloader
+    image: local/hf-downloader:latest
+    environment:
+      MODEL_ID: ${MODEL_ID}
+      HF_HUB_ENABLE_HF_TRANSFER: "1"
+      HUGGINGFACE_HUB_TOKEN: ${HUGGINGFACE_HUB_TOKEN}
+    volumes:
+      - models:/models
+      - hf_cache:/root/.cache/huggingface
+    profiles: ["bootstrap"]
+    command: ["bash","-lc","python /app/download.py && echo 'OK' && sleep 2"]
+
+  vllm:
+    build:
+      context: .
+      dockerfile: Dockerfile.vllm-openvino
+    image: local/vllm-openvino:latest
+    environment:
+      VLLM_DEVICE: xpu
+      HF_HUB_OFFLINE: "1"
+      MAX_MODEL_LEN: ${MAX_MODEL_LEN}
+      MODEL_PATH: /models/${MODEL_ID}
+    volumes:
+      - models:/models:ro
+      - hf_cache:/root/.cache/huggingface
+    ports:
+      - "${VLLM_PORT}:8000"
+     
+    devices:
+      - "/dev/dri:/dev/dri"
+    group_add:
+      - "105"                   # 👈 GID real del grupo render en tu Fedora
+    security_opt:
+      - "label=disable"         # Evita bloqueos SELinux sobre /dev/dri
+    deploy:
+      resources:
+        limits:
+          cpus: "6"
+          memory: 16g
+        reservations:
+          cpus: "2"
+          memory: 8g
+    command: >
+      bash -lc '
+      if [ ! -d "${MODEL_PATH}" ]; then
+        echo "❌ MODEL_PATH ${MODEL_PATH} no existe. Corre primero: podman-compose --profile bootstrap up --build downloader";
+        exit 1;
+      fi;
+      echo "✅ Modelo encontrado en ${MODEL_PATH}. Iniciando vLLM...";
+      vllm serve ${MODEL_PATH}
+        --host 0.0.0.0
+        --port 8000
+        --max-model-len ${MAX_MODEL_LEN}
+        --kv-cache-dtype fp8
+      '
+    healthcheck:
+      test: ["CMD-SHELL","curl -sSf http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    image: local/translator-web:latest
+    environment:
+      VLLM_BASE_URL: "http://vllm:8000/v1"
+      SYSTEM_PROMPT: |
+        You are a professional ES->EN technical translator for Kubernetes/OpenShift.
+        Preserve CLI commands (oc/kubectl), YAML blocks, logs, CRDs and resource names.
+        Do not translate code or inline commands. Be concise and precise.
+      GLOSSARY_PASSTHROUGH: "control plane,namespace,pod,PV,PVC,SCC,Route,Ingress,Service,Deployment,StatefulSet,DaemonSet,CRD,etcd,API server,oc,kubectl,Helm,ArgoCD,GitOps,OpenShift"
+    depends_on:
+      - vllm
+    ports:
+      - "5173:5173"
+
+volumes:
+  models:
+  hf_cache:

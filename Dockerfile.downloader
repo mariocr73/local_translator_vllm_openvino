@@ -1,0 +1,15 @@
+FROM python:3.11-slim
+
+RUN pip install --no-cache-dir huggingface_hub hf-transfer
+WORKDIR /app
+
+# Copiamos un archivo real, sin heredocs ni printf.
+COPY download.py /app/download.py
+
+RUN mkdir -p /models
+VOLUME ["/models", "/root/.cache/huggingface"]
+
+CMD ["python", "/app/download.py"]
+
+
+
