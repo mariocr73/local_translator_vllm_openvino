@@ -30,8 +30,8 @@ async def home():
 
 
 @app.post("/translate")
-async def translate(text: str = Form(...)):
-    """Endpoint para traducir texto automáticamente (principalmente ES→EN, pero bidireccional)"""
+async def translate(text: str = Form(...), target_lang: str = Form(None)):
+    """Endpoint para traducir texto automáticamente (ES↔EN↔PT con detección automática)"""
     if not text or not text.strip():
         return JSONResponse(
             status_code=400,
@@ -39,25 +39,57 @@ async def translate(text: str = Form(...)):
         )
 
     # Detección simple de idioma basada en palabras comunes
-    spanish_indicators = ['el', 'la', 'los', 'las', 'de', 'en', 'es', 'un', 'una', 'que', 'con', 'por', 'para']
-    english_indicators = ['the', 'is', 'are', 'of', 'in', 'to', 'and', 'a', 'an', 'that', 'with', 'for']
+    spanish_indicators = ['el', 'la', 'los', 'las', 'de', 'en', 'es', 'un', 'una', 'que', 'con', 'por', 'para', 'del']
+    english_indicators = ['the', 'is', 'are', 'of', 'in', 'to', 'and', 'a', 'an', 'that', 'with', 'for', 'from']
+    portuguese_indicators = ['o', 'a', 'os', 'as', 'de', 'em', 'do', 'da', 'dos', 'das', 'que', 'com', 'para', 'por', 'não', 'um', 'uma']
 
     text_lower = text.lower()
     spanish_count = sum(1 for word in spanish_indicators if f' {word} ' in f' {text_lower} ')
     english_count = sum(1 for word in english_indicators if f' {word} ' in f' {text_lower} ')
+    portuguese_count = sum(1 for word in portuguese_indicators if f' {word} ' in f' {text_lower} ')
 
-    # Determinar dirección de traducción
-    if spanish_count > english_count:
-        direction = "ES->EN"
-        source_lang = "Spanish"
-        target_lang = "English"
+    # Detectar idioma de origen
+    counts = {
+        'spanish': spanish_count,
+        'english': english_count,
+        'portuguese': portuguese_count
+    }
+    detected_lang = max(counts, key=counts.get)
+
+    # Determinar dirección de traducción basada en idioma detectado y target especificado
+    lang_codes = {
+        'spanish': ('ES', 'Spanish'),
+        'english': ('EN', 'English'),
+        'portuguese': ('PT', 'Portuguese')
+    }
+
+    source_code, source_lang = lang_codes[detected_lang]
+
+    # Si no se especifica target_lang, usar lógica por defecto
+    if not target_lang:
+        # Por defecto: ES/PT → EN, EN → ES
+        if detected_lang == 'english':
+            target_code, target_lang_name = 'ES', 'Spanish'
+        else:
+            target_code, target_lang_name = 'EN', 'English'
     else:
-        direction = "EN->ES"
-        source_lang = "English"
-        target_lang = "Spanish"
+        # Usar el target especificado por el usuario
+        target_map = {
+            'EN': ('EN', 'English'),
+            'ES': ('ES', 'Spanish'),
+            'PT': ('PT', 'Portuguese')
+        }
+        if target_lang not in target_map:
+            return JSONResponse(
+                status_code=400,
+                content={"error": f"Idioma de destino inválido: {target_lang}"}
+            )
+        target_code, target_lang_name = target_map[target_lang]
+
+    direction = f"{source_code}->{target_code}"
 
     # System prompt muy específico sobre el formato de salida
-    system_content = f"You are a {source_lang} to {target_lang} translator. Translate the user message and return ONLY the translation. Do not include any instructions, explanations, notes, or preambles in your response."
+    system_content = f"You are a {source_lang} to {target_lang_name} translator. Translate the user message and return ONLY the translation. Do not include any instructions, explanations, notes, or preambles in your response."
 
     # Prompt del usuario - solo el texto a traducir
     user_prompt = text
@@ -124,7 +156,7 @@ async def translate(text: str = Form(...)):
 
 @app.post("/refine")
 async def refine_text(text: str = Form(...), style: str = Form("clear"), direction: str = Form("ES->EN")):
-    """Endpoint para traducir con estilo mejorado desde el texto original"""
+    """Endpoint para traducir con estilo mejorado desde el texto original (ES↔EN↔PT)"""
     if not text or not text.strip():
         return JSONResponse(
             status_code=400,
@@ -132,12 +164,22 @@ async def refine_text(text: str = Form(...), style: str = Form("clear"), directi
         )
 
     # Determinar idiomas según la dirección
-    if direction == "ES->EN":
-        source_lang = "Spanish"
-        target_lang = "English"
-    else:
-        source_lang = "English"
-        target_lang = "Spanish"
+    direction_map = {
+        "ES->EN": ("Spanish", "English"),
+        "ES->PT": ("Spanish", "Portuguese"),
+        "EN->ES": ("English", "Spanish"),
+        "EN->PT": ("English", "Portuguese"),
+        "PT->ES": ("Portuguese", "Spanish"),
+        "PT->EN": ("Portuguese", "English"),
+    }
+
+    if direction not in direction_map:
+        return JSONResponse(
+            status_code=400,
+            content={"error": f"Dirección inválida: {direction}. Usa: {', '.join(direction_map.keys())}"}
+        )
+
+    source_lang, target_lang = direction_map[direction]
 
     # Definir los estilos de mejora disponibles con traducción
     style_prompts = {

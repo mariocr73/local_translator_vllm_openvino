@@ -1,15 +1,16 @@
-# Bidirectional Technical Translator ES↔EN
+# Trilingual Technical Translator ES↔EN↔PT
 
-Technical Spanish-English/English-Spanish translator using local LLM with Intel Arc Graphics acceleration and OpenVINO.
+Technical Spanish-English-Portuguese translator using local LLM with Intel Arc Graphics acceleration and OpenVINO.
 
 ## 🚀 Features
 
-- **Automatic Bidirectional Translation**: Automatically detects source language (ES/EN) and translates to the opposite
+- **Automatic Trilingual Translation**: Automatically detects source language (ES/EN/PT) and translates to any target language
+- **Flexible Language Selection**: Choose target language or use automatic mode (ES/PT → EN, EN → ES)
 - **AI-Powered Refinement**: Improve translations with 4 styles (formal, concise, clear, technical)
 - **Local LLM**: Uses Qwen2.5-3B-Instruct with FP8 KV cache quantization running completely offline for high-quality translations
 - **GPU Acceleration**: Optimized for Intel Arc Graphics with OpenVINO
 - **Technical Glossary**: Preserves Kubernetes/OpenShift technical terms without translation
-- **Modern Web Interface**: Responsive UI with real-time feedback
+- **Modern Web Interface**: Responsive UI with real-time feedback and language selector
 - **REST API**: Documented endpoints for integration
 
 ## 📋 Requirements
@@ -89,10 +90,11 @@ podman logs -f local_translator_vllm_openvino_vllm_1
 ### Web Interface
 
 1. Open your browser at: **http://localhost:5173**
-2. Type or paste text in Spanish or English
-3. Click "Translate"
-4. Translation will appear in seconds
-5. **[NEW]** Use "Improve with AI" to refine the translation:
+2. Type or paste text in Spanish, English, or Portuguese
+3. **[Optional]** Select target language (Auto, EN, ES, or PT)
+4. Click "Translate"
+5. Translation will appear in seconds
+6. **[OPTIONAL]** Use "Improve with AI" to refine the translation:
    - Select a style: **Formal**, **Concise**, **Clear**, or **Technical**
    - Click "Mejorar con IA"
    - Improved text appears in ~3-5 seconds
@@ -112,10 +114,26 @@ podman logs -f local_translator_vllm_openvino_vllm_1
 
 #### Translate Text
 
+**Automatic Mode** (detects source language and translates to default target):
 ```bash
 curl -X POST http://localhost:5173/translate \
   -F "text=KubeVirt is an open-source project"
 ```
+
+**With Specific Target Language**:
+```bash
+# English to Portuguese
+curl -X POST http://localhost:5173/translate \
+  -F "text=KubeVirt is an open-source project" \
+  -F "target_lang=PT"
+
+# Spanish to Portuguese
+curl -X POST http://localhost:5173/translate \
+  -F "text=KubeVirt es un proyecto de código abierto" \
+  -F "target_lang=PT"
+```
+
+**Available target languages**: `EN`, `ES`, `PT`, or omit for automatic mode
 
 **Response:**
 ```json
@@ -407,18 +425,19 @@ If you encounter issues:
 ---
 ---
 
-# Traductor Técnico Bidireccional ES↔EN
+# Traductor Técnico Trilingüe ES↔EN↔PT
 
-Traductor técnico español-inglés/inglés-español usando LLM local con aceleración Intel Arc Graphics y OpenVINO.
+Traductor técnico español-inglés-portugués usando LLM local con aceleración Intel Arc Graphics y OpenVINO.
 
 ## 🚀 Características
 
-- **Traducción Bidireccional Automática**: Detecta automáticamente el idioma fuente (ES/EN) y traduce al opuesto
+- **Traducción Trilingüe Automática**: Detecta automáticamente el idioma fuente (ES/EN/PT) y traduce a cualquier idioma destino
+- **Selección Flexible de Idioma**: Elige el idioma destino o usa modo automático (ES/PT → EN, EN → ES)
 - **Refinamiento con IA**: Mejora traducciones con 4 estilos (formal, conciso, claro, técnico)
 - **LLM Local**: Utiliza Qwen2.5-3B-Instruct con cuantización FP8 KV cache ejecutándose completamente offline para traducciones de alta calidad
 - **Aceleración por GPU**: Optimizado para Intel Arc Graphics con OpenVINO
 - **Glosario Técnico**: Preserva términos técnicos de Kubernetes/OpenShift sin traducir
-- **Interfaz Web Moderna**: UI responsive con retroalimentación en tiempo real
+- **Interfaz Web Moderna**: UI responsive con retroalimentación en tiempo real y selector de idioma
 - **API REST**: Endpoints documentados para integración
 
 ## 📋 Requisitos
@@ -498,10 +517,11 @@ podman logs -f local_translator_vllm_openvino_vllm_1
 ### Interfaz Web
 
 1. Abre tu navegador en: **http://localhost:5173**
-2. Escribe o pega texto en español o inglés
-3. Haz clic en "Traducir"
-4. La traducción aparecerá en segundos
-5. **[NUEVO]** Usa "Mejorar con IA" para refinar la traducción:
+2. Escribe o pega texto en español, inglés o portugués
+3. **[Opcional]** Selecciona el idioma destino (Auto, EN, ES o PT)
+4. Haz clic en "Traducir"
+5. La traducción aparecerá en segundos
+6. **[OPCIONAL]** Usa "Mejorar con IA" para refinar la traducción:
    - Selecciona un estilo: **Formal**, **Conciso**, **Claro** o **Técnico**
    - Haz clic en "Mejorar con IA"
    - El texto mejorado aparece en ~3-5 segundos

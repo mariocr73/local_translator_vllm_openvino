@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Traductor EN→ES</title>
+    <title>Traductor ES↔EN↔PT</title>
     <style>
         * {
             margin: 0;
@@ -227,13 +227,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>Traductor Bidireccional</h1>
-        <p class="subtitle">Traductor técnico ES↔EN con LLM local (detección automática)</p>
+        <h1>Traductor Trilingüe</h1>
+        <p class="subtitle">Traductor técnico ES↔EN↔PT con LLM local (detección automática)</p>
 
         <form id="translatorForm">
             <div class="translator-box">
                 <div class="text-area-wrapper">
-                    <label for="inputText">Texto original (ES o EN)</label>
+                    <label for="inputText">Texto original (ES, EN o PT)</label>
                     <textarea
                         id="inputText"
                         name="text"
@@ -250,6 +250,16 @@
                         disabled
                     ></textarea>
                 </div>
+            </div>
+
+            <div style="margin-bottom: 15px; text-align: center;">
+                <label for="targetLang" style="margin-right: 10px; font-weight: 600;">Traducir a:</label>
+                <select id="targetLang" name="target_lang" style="padding: 10px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em; cursor: pointer; background: white;">
+                    <option value="">Auto (ES/PT → EN, EN → ES)</option>
+                    <option value="EN">English</option>
+                    <option value="ES">Español</option>
+                    <option value="PT">Português</option>
+                </select>
             </div>
 
             <div class="button-container">
@@ -296,6 +306,7 @@
         const outputText = document.getElementById('outputText');
         const translateBtn = document.getElementById('translateBtn');
         const clearBtn = document.getElementById('clearBtn');
+        const targetLang = document.getElementById('targetLang');
         const status = document.getElementById('status');
         const refineSection = document.getElementById('refineSection');
         const refineBtn = document.getElementById('refineBtn');
@@ -334,6 +345,9 @@
             try {
                 const formData = new FormData();
                 formData.append('text', text);
+                if (targetLang.value) {
+                    formData.append('target_lang', targetLang.value);
+                }
 
                 const response = await fetch('/translate', {
                     method: 'POST',
